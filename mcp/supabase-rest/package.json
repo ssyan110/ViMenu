@@ -1,0 +1,14 @@
+{
+  "name": "vimenu-mcp-supabase-rest",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "description": "Local MCP server for read-only Supabase access (REST via supabase-js).",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@supabase/supabase-js": "^2.49.1"
+  }
+}

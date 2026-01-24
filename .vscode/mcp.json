@@ -1,0 +1,28 @@
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "supabase-url",
+      "description": "Supabase Project URL (https://xxxx.supabase.co)",
+      "password": false
+    },
+    {
+      "type": "promptString",
+      "id": "supabase-anon-key",
+      "description": "Supabase ANON key (NOT service_role)",
+      "password": true
+    }
+  ],
+  "servers": {
+    "vimenuSupabase": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${workspaceFolder}/mcp/supabase-rest/src/server.js"],
+      "env": {
+        "SUPABASE_URL": "${input:supabase-url}",
+        "SUPABASE_ANON_KEY": "${input:supabase-anon-key}",
+        "SUPABASE_ALLOWED_TABLES": "public_menu_items"
+      }
+    }
+  }
+}
