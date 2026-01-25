@@ -1,30 +1,55 @@
-import { getLanguageOrDefault } from "@/domain/language";
+import { mapGuestMenuResponse } from "@/application/guestMenuMapper";
+import { getGuestMenu } from "@/data/guest/getGuestMenu";
+import { getGuestRestaurantBySlug } from "@/data/guest/getGuestRestaurantBySlug";
+import { DEFAULT_LANGUAGE, normalizeLanguageCode } from "@/domain/language";
+import { GuestMenuScreen } from "@/ui/screens/GuestMenuScreen";
 
-export default function RestaurantPage({
+export default async function RestaurantPage({
   params,
   searchParams,
 }: {
   params: { slug: string };
-  searchParams: { lang?: string };
+  searchParams?: { lang?: string; cat?: string; diet?: string; excl?: string };
 }) {
-  const lang = getLanguageOrDefault(searchParams.lang);
+  try {
+    const lang = normalizeLanguageCode(searchParams?.lang ?? DEFAULT_LANGUAGE);
+    console.info("[vimenu][menu] loading", { slug: params.slug, lang });
 
-  return (
-    <main className="mx-auto flex min-h-[max(884px,100dvh)] w-full max-w-md flex-col p-6">
-      <h1 className="font-[var(--font-heading)] text-2xl font-bold">
-        Menu (placeholder)
-      </h1>
-      <p className="mt-2 text-white/80">
-        Restaurant:{" "}
-        <span className="font-semibold text-white">{params.slug}</span>
-      </p>
-      <p className="mt-1 text-white/80">
-        Selected language:{" "}
-        <span className="font-semibold text-white">{lang}</span>
-      </p>
-      <p className="mt-6 text-sm text-white/70">
-        Next step: replace this placeholder with the published menu screen.
-      </p>
-    </main>
-  );
+    const [restaurant, menu] = await Promise.all([
+      getGuestRestaurantBySlug(params.slug),
+      getGuestMenu({ slug: params.slug, langCode: lang }),
+    ]);
+
+    const availableLanguages = Array.from(
+      new Set([
+        DEFAULT_LANGUAGE,
+        ...restaurant.languages_enabled.map((c) => normalizeLanguageCode(c)),
+      ]),
+    );
+
+    const mappedMenu = mapGuestMenuResponse({
+      response: menu,
+      requestedLang: lang,
+    });
+
+    return (
+      <GuestMenuScreen
+        restaurant={{
+          slug: restaurant.restaurant.slug,
+          name: restaurant.restaurant.name,
+        }}
+        availableLanguages={availableLanguages}
+        menu={mappedMenu}
+      />
+    );
+  } catch (err) {
+    console.warn("[vimenu][menu] failed to load restaurant", params.slug, err);
+    return (
+      <GuestMenuScreen
+        restaurant={{ slug: params.slug, name: params.slug }}
+        availableLanguages={[DEFAULT_LANGUAGE]}
+        menu={{ lang: DEFAULT_LANGUAGE, currency: "VND", categories: [] }}
+      />
+    );
+  }
 }
