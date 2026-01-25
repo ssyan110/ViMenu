@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 
+import { getCountryFlagForLanguage } from "@/domain/i18n/languageToCountryFlag";
 import { formatLanguageLabel } from "@/domain/i18n/worldLanguages";
 import {
   DEFAULT_LANGUAGE,
@@ -10,6 +11,7 @@ import {
   normalizeLanguageCode,
 } from "@/domain/language";
 import { cn } from "@/shared/cn";
+import { CountryFlag } from "@/ui/components/CountryFlag";
 import { useLanguageSelection } from "@/ui/hooks/useLanguageSelection";
 import { IconArrowRight, IconBolt, IconCheckCircle } from "@/ui/icons";
 
@@ -33,6 +35,24 @@ type Props = {
 
 function LanguageBadge({ code }: { code: LanguageCode }) {
   const label = code.toUpperCase();
+  const country = getCountryFlagForLanguage(code);
+
+  if (country) {
+    return (
+      <div
+        className={cn(
+          "relative h-9 w-9 overflow-hidden rounded-full border",
+          "border-white/15 bg-white/5",
+        )}
+        aria-hidden="true"
+      >
+        <CountryFlag
+          country={country}
+          className="absolute inset-0 h-full w-full scale-[1.18]"
+        />
+      </div>
+    );
+  }
 
   return (
     <div
