@@ -29,6 +29,143 @@ import {
   IconShoppingBag,
 } from "@/ui/icons";
 
+function MenuItemCard(props: {
+  item: MenuItem;
+  bilingual: { primary: string; secondary?: string };
+  selectedLanguage: LanguageCode;
+  onAdd: () => void;
+}) {
+  const [imageFailed, setImageFailed] = React.useState(false);
+
+  React.useEffect(() => {
+    setImageFailed(false);
+  }, [props.item.imageUrl]);
+
+  const showImage = Boolean(props.item.imageUrl) && !imageFailed;
+
+  const description =
+    props.item.descriptionByLang?.[
+      normalizeLanguageCode(props.selectedLanguage)
+    ] ?? props.item.descriptionVi;
+
+  if (showImage) {
+    const hasPopularBadge = (props.item.badges ?? []).some((b) =>
+      ["popular", "best_seller"].includes(String(b.code).toLowerCase()),
+    );
+
+    return (
+      <article className="glass-card rounded-2xl p-3 flex gap-4 shadow-lg group relative overflow-hidden">
+        <div className="w-28 shrink-0 relative rounded-xl overflow-hidden aspect-square bg-gray-800">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={props.item.imageUrl}
+            alt={props.bilingual.primary}
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+            loading="lazy"
+            decoding="async"
+            onError={() => setImageFailed(true)}
+          />
+
+          {hasPopularBadge ? (
+            <div className="absolute top-0 left-0 bg-primary/90 text-background-dark text-[10px] font-bold px-2 py-1 rounded-br-lg backdrop-blur-sm">
+              POPULAR
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex flex-col flex-1 justify-between py-1 min-w-0">
+          <div>
+            <div className="flex justify-between items-start gap-2">
+              <h3 className="text-white text-lg font-bold leading-tight truncate">
+                {props.bilingual.primary}
+              </h3>
+              {props.item.priceText ? (
+                <span className="text-primary font-bold text-base whitespace-nowrap">
+                  {props.item.priceText}
+                </span>
+              ) : null}
+            </div>
+            {props.bilingual.secondary ? (
+              <p className="text-white/50 text-sm italic font-medium mt-0.5 truncate">
+                {props.bilingual.secondary}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex items-end justify-between mt-3">
+            <div className="flex gap-2">
+              {(props.item.allergens ?? []).slice(0, 2).map((a) => (
+                <AllergenBadge
+                  key={`${props.item.id}-alg-${a.code}`}
+                  code={a.code}
+                  icon={a.icon}
+                  title={a.displayVi}
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={props.onAdd}
+              className="size-8 rounded-full bg-primary text-background-dark flex items-center justify-center shadow-lg active:scale-90 transition-transform cursor-pointer"
+              aria-label="Add to My Items"
+            >
+              <IconPlus className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  return (
+    <article className="glass-card rounded-lg p-5 flex flex-col gap-3 relative overflow-hidden group active:bg-white/5 transition-colors">
+      <div className="flex justify-between items-start gap-4">
+        <h3 className="text-white text-lg font-bold leading-tight min-w-0 truncate">
+          {props.bilingual.primary}
+        </h3>
+        {props.item.priceText ? (
+          <span className="text-primary font-bold text-lg whitespace-nowrap">
+            {props.item.priceText}
+          </span>
+        ) : null}
+      </div>
+
+      {props.bilingual.secondary ? (
+        <p className="text-white/50 text-sm font-medium italic -mt-2 truncate">
+          {props.bilingual.secondary}
+        </p>
+      ) : null}
+
+      {description ? (
+        <p className="text-white/70 text-sm leading-relaxed line-clamp-2">
+          {description}
+        </p>
+      ) : null}
+
+      <div className="flex items-center justify-between gap-4 mt-1">
+        <div className="flex flex-wrap gap-2">
+          {(props.item.allergens ?? []).slice(0, 3).map((a) => (
+            <AllergenBadge
+              key={`${props.item.id}-alg-${a.code}`}
+              code={a.code}
+              icon={a.icon}
+              title={a.displayVi}
+            />
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={props.onAdd}
+          className="size-9 rounded-full bg-primary text-background-dark flex items-center justify-center shadow-lg active:scale-90 transition-transform cursor-pointer shrink-0"
+          aria-label="Add to My Items"
+        >
+          <IconPlus className="h-5 w-5" />
+        </button>
+      </div>
+    </article>
+  );
+}
+
 function useMenuFilters(params: { restaurantSlug: string }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -100,6 +237,7 @@ export function GuestMenuScreen(props: {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryLang = searchParams.get("lang");
+  const [, startCategoryTransition] = React.useTransition();
 
   const availableLanguages = React.useMemo(() => {
     const normalized = props.availableLanguages.map((l) =>
@@ -224,11 +362,13 @@ export function GuestMenuScreen(props: {
               <button
                 key={c.id}
                 type="button"
-                onClick={() =>
-                  router.replace(
-                    `/r/${props.restaurant.slug}?${next.toString()}`,
-                  )
-                }
+                onClick={() => {
+                  startCategoryTransition(() => {
+                    router.replace(
+                      `/r/${props.restaurant.slug}?${next.toString()}`,
+                    );
+                  });
+                }}
                 className={cn(
                   "snap-start shrink-0 h-9 px-5 rounded-full text-sm border transition-all whitespace-nowrap cursor-pointer",
                   isActive
@@ -253,139 +393,30 @@ export function GuestMenuScreen(props: {
           </span>
         </div>
 
-        {visibleItems.map((item) => {
-          const bilingual = getBilingualName({
-            nameVi: item.nameVi,
-            nameByLang: item.nameByLang,
-            selectedLanguage: selected,
-            fallbackSecondaryLanguage: availableLanguages.includes("en")
-              ? "en"
-              : DEFAULT_LANGUAGE,
-          });
+        <div key={activeCategory ?? "category"} className="menu-list-animate">
+          <div className="flex flex-col gap-5">
+            {visibleItems.map((item) => {
+              const bilingual = getBilingualName({
+                nameVi: item.nameVi,
+                nameByLang: item.nameByLang,
+                selectedLanguage: selected,
+                fallbackSecondaryLanguage: availableLanguages.includes("en")
+                  ? "en"
+                  : DEFAULT_LANGUAGE,
+              });
 
-          const isImageCard = Boolean(item.imageUrl);
-
-          if (isImageCard) {
-            const hasPopularBadge = (item.badges ?? []).some((b) =>
-              ["popular", "best_seller"].includes(String(b.code).toLowerCase()),
-            );
-
-            return (
-              <article
-                key={item.id}
-                className="glass-card rounded-2xl p-3 flex gap-4 shadow-lg group relative overflow-hidden"
-              >
-                <div className="w-28 shrink-0 relative rounded-xl overflow-hidden aspect-square bg-gray-800">
-                  <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
-                    style={{ backgroundImage: `url(${item.imageUrl})` }}
-                    aria-hidden="true"
-                  />
-
-                  {hasPopularBadge ? (
-                    <div className="absolute top-0 left-0 bg-primary/90 text-background-dark text-[10px] font-bold px-2 py-1 rounded-br-lg backdrop-blur-sm">
-                      POPULAR
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="flex flex-col flex-1 justify-between py-1 min-w-0">
-                  <div>
-                    <div className="flex justify-between items-start gap-2">
-                      <h3 className="text-white text-lg font-bold leading-tight truncate">
-                        {bilingual.primary}
-                      </h3>
-                      {item.priceText ? (
-                        <span className="text-primary font-bold text-base whitespace-nowrap">
-                          {item.priceText}
-                        </span>
-                      ) : null}
-                    </div>
-                    {bilingual.secondary ? (
-                      <p className="text-white/50 text-sm italic font-medium mt-0.5 truncate">
-                        {bilingual.secondary}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="flex items-end justify-between mt-3">
-                    <div className="flex gap-2">
-                      {(item.allergens ?? []).slice(0, 2).map((a) => (
-                        <AllergenBadge
-                          key={`${item.id}-alg-${a.code}`}
-                          code={a.code}
-                          icon={a.icon}
-                          title={a.displayVi}
-                        />
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => myItems.add(item.id)}
-                      className="size-8 rounded-full bg-primary text-background-dark flex items-center justify-center shadow-lg active:scale-90 transition-transform cursor-pointer"
-                      aria-label="Add to My Items"
-                    >
-                      <IconPlus className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-              </article>
-            );
-          }
-
-          return (
-            <article
-              key={item.id}
-              className="glass-card rounded-lg p-5 flex flex-col gap-3 relative overflow-hidden group active:bg-white/5 transition-colors"
-            >
-              <div className="flex justify-between items-start gap-4">
-                <h3 className="text-white text-lg font-bold leading-tight min-w-0 truncate">
-                  {bilingual.primary}
-                </h3>
-                {item.priceText ? (
-                  <span className="text-primary font-bold text-lg whitespace-nowrap">
-                    {item.priceText}
-                  </span>
-                ) : null}
-              </div>
-
-              {bilingual.secondary ? (
-                <p className="text-white/50 text-sm font-medium italic -mt-2 truncate">
-                  {bilingual.secondary}
-                </p>
-              ) : null}
-
-              {(item.descriptionByLang?.[normalizeLanguageCode(selected)] ??
-              item.descriptionVi) ? (
-                <p className="text-white/70 text-sm leading-relaxed line-clamp-2">
-                  {item.descriptionByLang?.[normalizeLanguageCode(selected)] ??
-                    item.descriptionVi}
-                </p>
-              ) : null}
-
-              <div className="flex items-center justify-between gap-4 mt-1">
-                <div className="flex flex-wrap gap-2">
-                  {(item.allergens ?? []).slice(0, 3).map((a) => (
-                    <AllergenBadge
-                      key={`${item.id}-alg-${a.code}`}
-                      code={a.code}
-                      icon={a.icon}
-                      title={a.displayVi}
-                    />
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => myItems.add(item.id)}
-                  className="size-9 rounded-full bg-primary text-background-dark flex items-center justify-center shadow-lg active:scale-90 transition-transform cursor-pointer shrink-0"
-                  aria-label="Add to My Items"
-                >
-                  <IconPlus className="h-5 w-5" />
-                </button>
-              </div>
-            </article>
-          );
-        })}
+              return (
+                <MenuItemCard
+                  key={item.id}
+                  item={item}
+                  bilingual={bilingual}
+                  selectedLanguage={selected}
+                  onAdd={() => myItems.add(item.id)}
+                />
+              );
+            })}
+          </div>
+        </div>
       </main>
 
       <div className="fixed bottom-6 right-5 z-50">
