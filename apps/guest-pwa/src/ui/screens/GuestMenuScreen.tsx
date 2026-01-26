@@ -273,10 +273,24 @@ export function GuestMenuScreen(props: {
     [categories],
   );
 
+  const [activeCategoryId, setActiveCategoryId] = React.useState<
+    string | undefined
+  >(() => searchParams.get("cat") ?? categories[0]?.id);
+
+  React.useEffect(() => {
+    if (!categories.length) return;
+    if (
+      !activeCategoryId ||
+      !categories.some((c) => c.id === activeCategoryId)
+    ) {
+      setActiveCategoryId(categories[0]?.id);
+    }
+  }, [activeCategoryId, categories]);
+
   const myItems = useMyItems({ restaurantSlug: props.restaurant.slug });
   const filters = useMenuFilters({ restaurantSlug: props.restaurant.slug });
 
-  const activeCategory = searchParams.get("cat") ?? categories[0]?.id;
+  const activeCategory = activeCategoryId;
 
   const visibleItems = React.useMemo(() => {
     return allItems
@@ -348,8 +362,6 @@ export function GuestMenuScreen(props: {
         <div className="w-full overflow-x-auto no-scrollbar pb-3 pt-1 px-5 flex gap-3 snap-x">
           {categories.map((c) => {
             const isActive = c.id === activeCategory;
-            const next = new URLSearchParams(searchParams.toString());
-            next.set("cat", c.id);
 
             return (
               <button
@@ -357,9 +369,15 @@ export function GuestMenuScreen(props: {
                 type="button"
                 onClick={() => {
                   startCategoryTransition(() => {
-                    router.replace(
-                      `/r/${props.restaurant.slug}?${next.toString()}`,
-                    );
+                    setActiveCategoryId(c.id);
+
+                    // Keep category in URL for shareability without triggering
+                    // App Router navigation (which would refetch server data).
+                    if (typeof window !== "undefined") {
+                      const url = new URL(window.location.href);
+                      url.searchParams.set("cat", c.id);
+                      window.history.replaceState(null, "", url.toString());
+                    }
                   });
                 }}
                 className={cn(
