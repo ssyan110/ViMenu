@@ -21,12 +21,17 @@ import { FilterSheet, type MenuFilters } from "@/ui/components/FilterSheet";
 import { LanguageSwitcherSheet } from "@/ui/components/LanguageSwitcherSheet";
 import { useLanguageSelection } from "@/ui/hooks/useLanguageSelection";
 import { useMyItems } from "@/ui/hooks/useMyItems";
+import { useRestaurantWeatherToday } from "@/ui/hooks/useRestaurantWeatherToday";
 import {
   IconArrowRight,
+  IconCloud,
+  IconCloudRain,
+  IconCloudSun,
   IconFilter,
-  IconLocation,
   IconPlus,
   IconShoppingBag,
+  IconSun,
+  IconThermometer,
 } from "@/ui/icons";
 
 function MenuItemCard(props: {
@@ -166,11 +171,10 @@ function MenuItemCard(props: {
   );
 }
 
-function useMenuFilters(params: { restaurantSlug: string }) {
-  const router = useRouter();
+function useMenuFilters() {
   const sp = useSearchParams();
 
-  const value = React.useMemo<MenuFilters>(() => {
+  const initial = React.useMemo<MenuFilters>(() => {
     const dietary = (sp.get("diet") ?? "")
       .split(",")
       .map((s) => s.trim())
@@ -184,21 +188,32 @@ function useMenuFilters(params: { restaurantSlug: string }) {
     return { dietary, excludeAllergens };
   }, [sp]);
 
-  const setValue = React.useCallback(
-    (next: MenuFilters) => {
-      const nextParams = new URLSearchParams(sp.toString());
+  const [value, setValueState] = React.useState<MenuFilters>(initial);
 
-      if (next.dietary.length) nextParams.set("diet", next.dietary.join(","));
-      else nextParams.delete("diet");
+  // If the user lands on a shared URL with filters, initialize from it.
+  React.useEffect(() => {
+    setValueState(initial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial.dietary.join(","), initial.excludeAllergens.join(",")]);
+
+  const setValue = React.useCallback((next: MenuFilters) => {
+    setValueState(next);
+
+    // Update URL for shareability without triggering App Router navigation.
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+
+      if (next.dietary.length)
+        url.searchParams.set("diet", next.dietary.join(","));
+      else url.searchParams.delete("diet");
 
       if (next.excludeAllergens.length)
-        nextParams.set("excl", next.excludeAllergens.join(","));
-      else nextParams.delete("excl");
+        url.searchParams.set("excl", next.excludeAllergens.join(","));
+      else url.searchParams.delete("excl");
 
-      router.replace(`/r/${params.restaurantSlug}?${nextParams.toString()}`);
-    },
-    [params.restaurantSlug, router, sp],
-  );
+      window.history.replaceState(null, "", url.toString());
+    }
+  }, []);
 
   return { value, setValue };
 }
@@ -264,6 +279,12 @@ export function GuestMenuScreen(props: {
   const [languageOpen, setLanguageOpen] = React.useState(false);
   const [filterOpen, setFilterOpen] = React.useState(false);
 
+  const weather = useRestaurantWeatherToday({
+    restaurantSlug: props.restaurant.slug,
+    locationText: props.restaurant.locationText,
+    language: normalizeLanguageCode(selected),
+  });
+
   const categories = React.useMemo(
     () => props.menu.categories,
     [props.menu.categories],
@@ -288,7 +309,7 @@ export function GuestMenuScreen(props: {
   }, [activeCategoryId, categories]);
 
   const myItems = useMyItems({ restaurantSlug: props.restaurant.slug });
-  const filters = useMenuFilters({ restaurantSlug: props.restaurant.slug });
+  const filters = useMenuFilters();
 
   const activeCategory = activeCategoryId;
 
@@ -302,9 +323,12 @@ export function GuestMenuScreen(props: {
     (code: LanguageCode) => {
       select(code);
       persist();
-      const next = new URLSearchParams(searchParams.toString());
-      next.set("lang", code);
-      router.replace(`/r/${props.restaurant.slug}?${next.toString()}`);
+      const current =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search)
+          : new URLSearchParams(searchParams.toString());
+      current.set("lang", code);
+      router.replace(`/r/${props.restaurant.slug}?${current.toString()}`);
       setLanguageOpen(false);
     },
     [persist, props.restaurant.slug, router, searchParams, select],
@@ -328,10 +352,28 @@ export function GuestMenuScreen(props: {
               <h1 className="text-sm font-bold tracking-tight text-white/90 truncate">
                 {props.restaurant.name}
               </h1>
-              <div className="flex items-center gap-1 text-xs text-primary">
-                <IconLocation className="h-4 w-4" />
+              <div className="flex items-center gap-2 text-xs text-primary">
+                {(() => {
+                  const code = weather.data?.weatherCode;
+                  if (code == null)
+                    return <IconThermometer className="h-4 w-4" />;
+                  // Open-Meteo weather codes (very small mapping for UI).
+                  // 0: clear, 1-3: partly/cloudy, 51-67: drizzle/rain, 80-82: rain showers.
+                  if (code === 0) return <IconSun className="h-4 w-4" />;
+                  if (code >= 1 && code <= 3)
+                    return <IconCloudSun className="h-4 w-4" />;
+                  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82))
+                    return <IconCloudRain className="h-4 w-4" />;
+                  return <IconCloud className="h-4 w-4" />;
+                })()}
                 <span className="opacity-90 truncate">
-                  {props.restaurant.locationText ?? "Hanoi, Vietnam"}
+                  {weather.data
+                    ? `${Math.round(weather.data.temperatureC)}°C today`
+                    : weather.status === "loading"
+                      ? "Loading weather…"
+                      : weather.status === "error"
+                        ? "Weather unavailable"
+                        : "Weather"}
                 </span>
               </div>
             </div>

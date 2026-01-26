@@ -1,5 +1,7 @@
 "use client";
 
+import * as React from "react";
+
 import type {
   MenuAllergenCode,
   MenuDietaryTagCode,
@@ -46,25 +48,37 @@ export function FilterSheet(props: {
   onChange: (next: MenuFilters) => void;
   onApply: () => void;
 }) {
-  const toggleDietary = (code: MenuDietaryTagCode) => {
-    const has = props.value.dietary.includes(code);
-    props.onChange({
-      ...props.value,
-      dietary: has
-        ? props.value.dietary.filter((c) => c !== code)
-        : [...props.value.dietary, code],
-    });
-  };
+  const [draft, setDraft] = React.useState<MenuFilters>(props.value);
 
-  const toggleAllergen = (code: MenuAllergenCode) => {
-    const has = props.value.excludeAllergens.includes(code);
-    props.onChange({
-      ...props.value,
-      excludeAllergens: has
-        ? props.value.excludeAllergens.filter((c) => c !== code)
-        : [...props.value.excludeAllergens, code],
+  // When opening the sheet, start from the currently applied filters.
+  React.useEffect(() => {
+    if (!props.open) return;
+    setDraft(props.value);
+  }, [props.open, props.value]);
+
+  const toggleDietary = React.useCallback((code: MenuDietaryTagCode) => {
+    setDraft((prev) => {
+      const has = prev.dietary.includes(code);
+      return {
+        ...prev,
+        dietary: has
+          ? prev.dietary.filter((c) => c !== code)
+          : [...prev.dietary, code],
+      };
     });
-  };
+  }, []);
+
+  const toggleAllergen = React.useCallback((code: MenuAllergenCode) => {
+    setDraft((prev) => {
+      const has = prev.excludeAllergens.includes(code);
+      return {
+        ...prev,
+        excludeAllergens: has
+          ? prev.excludeAllergens.filter((c) => c !== code)
+          : [...prev.excludeAllergens, code],
+      };
+    });
+  }, []);
 
   return (
     <BottomSheet
@@ -101,14 +115,14 @@ export function FilterSheet(props: {
 
           <div className="flex flex-wrap gap-2">
             {DIETARY.map((t) => {
-              const active = props.value.dietary.includes(t.code);
+              const active = draft.dietary.includes(t.code);
               return (
                 <button
                   key={t.code}
                   type="button"
                   onClick={() => toggleDietary(t.code)}
                   className={cn(
-                    "flex items-center gap-2 h-10 px-4 rounded-full text-sm transition-colors",
+                    "flex items-center gap-2 h-10 px-4 rounded-full text-sm transition-colors duration-200",
                     active
                       ? "bg-primary text-background-dark font-bold shadow-[0_4px_12px_rgba(19,182,236,0.3)]"
                       : "bg-white/5 border border-white/10 text-white/80 font-medium hover:bg-white/10",
@@ -142,14 +156,14 @@ export function FilterSheet(props: {
 
           <div className="grid grid-cols-2 gap-3">
             {ALLERGENS.map((a) => {
-              const active = props.value.excludeAllergens.includes(a.code);
+              const active = draft.excludeAllergens.includes(a.code);
               return (
                 <button
                   key={a.code}
                   type="button"
                   onClick={() => toggleAllergen(a.code)}
                   className={cn(
-                    "flex items-center gap-3 p-3 rounded-2xl border transition-all group",
+                    "flex items-center gap-3 p-3 rounded-2xl border transition-colors duration-200 group",
                     active
                       ? "bg-red-500/20 border-red-500/50 ring-1 ring-red-500/20"
                       : "bg-white/5 border-white/10 hover:bg-red-500/10 hover:border-red-500/30",
@@ -190,8 +204,11 @@ export function FilterSheet(props: {
       <div className="sticky bottom-0 p-6 bg-gradient-to-t from-background-dark via-background-dark/95 to-transparent pt-10">
         <button
           type="button"
-          onClick={props.onApply}
-          className="w-full h-14 bg-primary text-background-dark font-bold text-lg rounded-2xl shadow-[0_12px_30px_rgba(19,182,236,0.4)] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          onClick={() => {
+            props.onChange(draft);
+            props.onApply();
+          }}
+          className="w-full h-14 bg-primary text-background-dark font-bold text-lg rounded-2xl shadow-[0_12px_30px_rgba(19,182,236,0.4)] active:scale-[0.98] transition-transform duration-200 flex items-center justify-center gap-2"
         >
           Apply Filters
           <IconCheckCircle className="h-6 w-6" />
