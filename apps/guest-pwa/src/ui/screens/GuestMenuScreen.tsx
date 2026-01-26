@@ -259,14 +259,7 @@ export function GuestMenuScreen(props: {
     const next = new URLSearchParams(searchParams.toString());
     next.set("lang", selected);
     router.replace(`/r/${props.restaurant.slug}?${next.toString()}`);
-  }, [
-    DEFAULT_LANGUAGE,
-    props.restaurant.slug,
-    queryLang,
-    router,
-    searchParams,
-    selected,
-  ]);
+  }, [props.restaurant.slug, queryLang, router, searchParams, selected]);
 
   const [languageOpen, setLanguageOpen] = React.useState(false);
   const [filterOpen, setFilterOpen] = React.useState(false);

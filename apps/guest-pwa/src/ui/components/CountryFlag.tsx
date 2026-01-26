@@ -14,21 +14,23 @@ export function CountryFlag({
   title?: string;
   className?: string;
 }) {
-  const Flag = (
-    FlagIcons as unknown as Record<string, React.ComponentType<any>>
-  )[country];
+  type FlagComponent = React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  const Flag = (FlagIcons as unknown as Record<string, FlagComponent>)[country];
 
   if (!Flag) return null;
 
   return (
     <Flag
       className={className}
-      title={title}
+      aria-label={title}
+      role={title ? "img" : undefined}
       aria-hidden={title ? undefined : true}
       focusable={false}
       // `country-flag-icons` uses a 3x2 viewBox; inside a circle we want a "cover" crop.
       // Many SVGs respect preserveAspectRatio; if not, the parent can still scale-crop.
       preserveAspectRatio="xMidYMid slice"
-    />
+    >
+      {title ? <title>{title}</title> : null}
+    </Flag>
   );
 }
