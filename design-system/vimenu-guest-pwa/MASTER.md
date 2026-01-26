@@ -7,7 +7,7 @@
 ---
 
 **Project:** ViMenu Guest PWA
-**Generated:** 2026-01-25 20:25:37
+**Generated:** 2026-01-26 16:02:37
 **Category:** Restaurant/Food Service
 
 ---
@@ -18,13 +18,13 @@
 
 | Role | Hex | CSS Variable |
 |------|-----|--------------|
-| Primary | `#171717` | `--color-primary` |
-| Secondary | `#404040` | `--color-secondary` |
-| CTA/Accent | `#D4AF37` | `--color-cta` |
-| Background | `#FFFFFF` | `--color-background` |
-| Text | `#171717` | `--color-text` |
+| Primary | `#FFFFFF` | `--color-primary` |
+| Secondary | `#E5E5E5` | `--color-secondary` |
+| CTA/Accent | `#007AFF` | `--color-cta` |
+| Background | `#888888` | `--color-background` |
+| Text | `#000000` | `--color-text` |
 
-**Color Notes:** Minimal black + accent gold
+**Color Notes:** Glass white + system blue
 
 ### Typography
 
@@ -68,7 +68,7 @@
 ```css
 /* Primary Button */
 .btn-primary {
-  background: #D4AF37;
+  background: #007AFF;
   color: white;
   padding: 12px 24px;
   border-radius: 8px;
@@ -85,8 +85,8 @@
 /* Secondary Button */
 .btn-secondary {
   background: transparent;
-  color: #171717;
-  border: 2px solid #171717;
+  color: #FFFFFF;
+  border: 2px solid #FFFFFF;
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -99,7 +99,7 @@
 
 ```css
 .card {
-  background: #FFFFFF;
+  background: #888888;
   border-radius: 12px;
   padding: 24px;
   box-shadow: var(--shadow-md);
@@ -125,9 +125,9 @@
 }
 
 .input:focus {
-  border-color: #171717;
+  border-color: #FFFFFF;
   outline: none;
-  box-shadow: 0 0 0 3px #17171720;
+  box-shadow: 0 0 0 3px #FFFFFF20;
 }
 ```
 

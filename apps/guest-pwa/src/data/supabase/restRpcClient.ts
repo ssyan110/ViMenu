@@ -1,3 +1,5 @@
+import { isVimenuDebugEnabled, isVimenuDebugFull } from "@/shared/debug";
+
 export class SupabaseRestError extends Error {
   constructor(
     message: string,
@@ -12,12 +14,6 @@ export class SupabaseRestError extends Error {
 function getEnv(name: string): string | undefined {
   const value = process.env[name];
   return value && value.trim().length > 0 ? value : undefined;
-}
-
-function isDebugEnabled() {
-  const v =
-    getEnv("VIMENU_DEBUG_API") ?? getEnv("NEXT_PUBLIC_VIMENU_DEBUG_API");
-  return v === "1" || v === "true";
 }
 
 export function getSupabaseConfig() {
@@ -39,6 +35,7 @@ export async function supabaseRpc<TResponse>(params: {
   anonKeyOverride?: string;
   signal?: AbortSignal;
 }): Promise<TResponse> {
+  const startedAt = Date.now();
   const cfg = getSupabaseConfig();
   const baseUrl = params.urlOverride ?? cfg.url;
   const anonKey = params.anonKeyOverride ?? cfg.anonKey;
@@ -58,7 +55,7 @@ export async function supabaseRpc<TResponse>(params: {
   headers.apikey = anonKey;
   headers.Authorization = `Bearer ${anonKey}`;
 
-  if (isDebugEnabled()) {
+  if (isVimenuDebugEnabled()) {
     console.info("[vimenu][rpc] POST", `${baseUrl}/rest/v1/rpc/${params.fn}`, {
       body: params.body,
     });
@@ -80,7 +77,7 @@ export async function supabaseRpc<TResponse>(params: {
       // ignore
     }
 
-    if (isDebugEnabled()) {
+    if (isVimenuDebugEnabled()) {
       console.warn("[vimenu][rpc] ERROR", params.fn, res.status, details);
     }
     throw new SupabaseRestError(
@@ -91,8 +88,21 @@ export async function supabaseRpc<TResponse>(params: {
   }
 
   const data = (await res.json()) as TResponse;
-  if (isDebugEnabled()) {
-    console.info("[vimenu][rpc] OK", params.fn);
+  if (isVimenuDebugEnabled()) {
+    const ms = Date.now() - startedAt;
+    console.info("[vimenu][rpc] OK", params.fn, { status: res.status, ms });
+    try {
+      const preview = JSON.stringify(data);
+      const full = isVimenuDebugFull();
+      const limit = full ? 50_000 : 2_000;
+      console.info(
+        "[vimenu][rpc] RES",
+        params.fn,
+        preview.length > limit ? `${preview.slice(0, limit)}…` : preview,
+      );
+    } catch {
+      // ignore
+    }
   }
   return data;
 }
