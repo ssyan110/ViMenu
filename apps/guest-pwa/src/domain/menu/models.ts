@@ -72,3 +72,31 @@ export type GuestMenu = {
   availableAllergens?: MenuAllergenFilterOption[];
   availableDietaryTags?: MenuDietaryFilterOption[];
 };
+
+export type GuestItemDetail = {
+  lang: string;
+  currency: string;
+  restaurant: {
+    slug: string;
+    name: string;
+  };
+  category?: {
+    id: string;
+    nameVi: string;
+    nameByLang?: Record<string, string | undefined>;
+  };
+  item: MenuItem & {
+    nutrition?: {
+      calories?: number;
+      proteinG?: number;
+      fatG?: number;
+      carbsG?: number;
+      sodiumMg?: number;
+    };
+    dietaryTagsWithLabels?: Array<{
+      code: MenuDietaryTagCode;
+      label: string;
+      labelVi: string;
+    }>;
+  };
+};

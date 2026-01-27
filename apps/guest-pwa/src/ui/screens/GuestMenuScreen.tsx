@@ -41,6 +41,7 @@ function MenuItemCard(props: {
   item: MenuItem;
   bilingual: { primary: string; secondary?: string };
   selectedLanguage: LanguageCode;
+  onOpen: () => void;
   onAdd: () => void;
 }) {
   const [imageFailed, setImageFailed] = React.useState(false);
@@ -62,7 +63,16 @@ function MenuItemCard(props: {
     );
 
     return (
-      <article className="glass-card rounded-2xl p-3 flex gap-4 shadow-lg group relative overflow-hidden">
+      <article
+        className="glass-card rounded-2xl p-3 flex gap-4 shadow-lg group relative overflow-hidden cursor-pointer"
+        role="button"
+        tabIndex={0}
+        onClick={props.onOpen}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") props.onOpen();
+        }}
+        aria-label={`Open item ${props.bilingual.primary}`}
+      >
         <div className="w-28 shrink-0 relative rounded-xl overflow-hidden aspect-square bg-gray-800">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -113,7 +123,10 @@ function MenuItemCard(props: {
             </div>
             <button
               type="button"
-              onClick={props.onAdd}
+              onClick={(e) => {
+                e.stopPropagation();
+                props.onAdd();
+              }}
               className="size-8 rounded-full bg-primary text-background-dark flex items-center justify-center shadow-lg active:scale-90 transition-transform cursor-pointer"
               aria-label="Add to My Items"
             >
@@ -126,7 +139,16 @@ function MenuItemCard(props: {
   }
 
   return (
-    <article className="glass-card rounded-lg p-5 flex flex-col gap-3 relative overflow-hidden group active:bg-white/5 transition-colors">
+    <article
+      className="glass-card rounded-lg p-5 flex flex-col gap-3 relative overflow-hidden group active:bg-white/5 transition-colors cursor-pointer"
+      role="button"
+      tabIndex={0}
+      onClick={props.onOpen}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") props.onOpen();
+      }}
+      aria-label={`Open item ${props.bilingual.primary}`}
+    >
       <div className="flex justify-between items-start gap-4">
         <h3 className="text-white text-lg font-bold leading-tight min-w-0 truncate">
           {props.bilingual.primary}
@@ -163,7 +185,10 @@ function MenuItemCard(props: {
         </div>
         <button
           type="button"
-          onClick={props.onAdd}
+          onClick={(e) => {
+            e.stopPropagation();
+            props.onAdd();
+          }}
           className="size-9 rounded-full bg-primary text-background-dark flex items-center justify-center shadow-lg active:scale-90 transition-transform cursor-pointer shrink-0"
           aria-label="Add to My Items"
         >
@@ -700,6 +725,16 @@ export function GuestMenuScreen(props: {
                   item={item}
                   bilingual={bilingual}
                   selectedLanguage={selected}
+                  onOpen={() => {
+                    const current =
+                      typeof window !== "undefined"
+                        ? new URLSearchParams(window.location.search)
+                        : new URLSearchParams(searchParams.toString());
+                    // Keep current query params (lang/cat/diet/excl) for back navigation.
+                    router.push(
+                      `/r/${props.restaurant.slug}/item/${item.id}?${current.toString()}`,
+                    );
+                  }}
                   onAdd={() => myItems.add(item.id)}
                 />
               );
