@@ -337,6 +337,7 @@ function SwipeableMyItemCard(props: {
   const startX = React.useRef<number | null>(null);
   const [offsetX, setOffsetX] = React.useState(0);
   const [isDragging, setIsDragging] = React.useState(false);
+  const revealDelete = offsetX < -6 || isDragging;
 
   const handlePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -369,7 +370,14 @@ function SwipeableMyItemCard(props: {
 
   return (
     <div className="relative">
-      <div className="absolute inset-0 flex items-center justify-end pr-4 rounded-2xl bg-red-500/20 border border-red-500/30">
+      <div
+        className={cn(
+          "absolute inset-0 flex items-center justify-end pr-4 rounded-2xl border transition-opacity",
+          revealDelete
+            ? "opacity-100 bg-red-500/25 border-red-500/35"
+            : "opacity-0 bg-transparent border-transparent pointer-events-none",
+        )}
+      >
         <button
           type="button"
           onClick={() => props.onRemove(props.myItem.itemId)}
