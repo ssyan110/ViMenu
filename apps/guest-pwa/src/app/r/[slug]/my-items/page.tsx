@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { formatPrice } from "@/application/guestMenuMapper";
+import { resolvePublicImageUrl } from "@/application/publicImageUrl";
 import { getGuestMenu } from "@/data/guest/getGuestMenu";
 import { getGuestRestaurantBySlug } from "@/data/guest/getGuestRestaurantBySlug";
 import { normalizeLanguageCode } from "@/domain/language";
@@ -59,7 +60,7 @@ export default async function MyItemsPage(props: PageProps) {
             ? formatPrice(item.price, menuData.restaurant.currency)
             : undefined,
         priceNote: item.price_note ?? undefined,
-        imageUrl: item.image_path ?? undefined,
+        imageUrl: resolvePublicImageUrl(item.image_path),
         nameVi: item.name_vi,
         nameByLang,
         descriptionVi: item.description_vi ?? undefined,

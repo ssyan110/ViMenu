@@ -1,5 +1,5 @@
+import { resolvePublicImageUrl } from "@/application/publicImageUrl";
 import type { GuestMenuRpcResponse } from "@/data/guest/getGuestMenu";
-import { getSupabaseConfig } from "@/data/supabase/restRpcClient";
 import {
   DEFAULT_LANGUAGE,
   type LanguageCode,
@@ -51,18 +51,6 @@ export function formatPrice(price: number, currency: string): string {
   } catch {
     return `${price} ${currency}`;
   }
-}
-
-function resolvePublicImageUrl(imagePath: string | null): string | undefined {
-  if (!imagePath) return undefined;
-  if (/^https?:\/\//i.test(imagePath)) return imagePath;
-
-  // Convention: image_path is "<bucket>/<path>".
-  const { url } = getSupabaseConfig();
-  return `${url.replace(/\/$/, "")}/storage/v1/object/public/${imagePath.replace(
-    /^\//,
-    "",
-  )}`;
 }
 
 function normalizeBackendCode(code: string | null | undefined): string | null {
