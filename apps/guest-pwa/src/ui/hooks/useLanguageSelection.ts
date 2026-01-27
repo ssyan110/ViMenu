@@ -7,7 +7,11 @@ import {
   persistSelectedLanguage,
   type LanguageSelectionStorage,
 } from "@/application/languageSelection";
-import { DEFAULT_LANGUAGE, type LanguageCode } from "@/domain/language";
+import {
+  DEFAULT_LANGUAGE,
+  getLanguageOrDefault,
+  type LanguageCode,
+} from "@/domain/language";
 
 function createBrowserStorage(): LanguageSelectionStorage {
   return {
@@ -34,13 +38,22 @@ export function useLanguageSelection(params: {
 }) {
   const storage = React.useMemo(() => createBrowserStorage(), []);
 
+  // IMPORTANT: avoid reading localStorage during the initial render.
+  // Client Components are still server-rendered, so storage-driven state here
+  // can cause hydration mismatches.
   const [selected, setSelected] = React.useState<LanguageCode>(() =>
-    getInitialSelectedLanguage({
+    getLanguageOrDefault(params.queryLang),
+  );
+
+  // After mount, sync from localStorage (unless URL already pins language).
+  React.useEffect(() => {
+    const next = getInitialSelectedLanguage({
       restaurantSlug: params.restaurantSlug,
       queryLang: params.queryLang,
       storage,
-    }),
-  );
+    });
+    setSelected((prev) => (prev === next ? prev : next));
+  }, [params.queryLang, params.restaurantSlug, storage]);
 
   const isDefault = selected === DEFAULT_LANGUAGE;
 

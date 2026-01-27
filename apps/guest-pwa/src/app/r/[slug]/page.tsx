@@ -57,6 +57,7 @@ export default async function RestaurantPage({
 
     return (
       <GuestMenuScreen
+        initialSearchParams={searchParams}
         restaurant={{
           slug: restaurant.restaurant.slug,
           name: restaurant.restaurant.name,
@@ -69,6 +70,7 @@ export default async function RestaurantPage({
     console.warn("[vimenu][menu] failed to load restaurant", params.slug, err);
     return (
       <GuestMenuScreen
+        initialSearchParams={searchParams}
         restaurant={{ slug: params.slug, name: params.slug }}
         availableLanguages={[DEFAULT_LANGUAGE]}
         menu={{
