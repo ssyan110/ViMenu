@@ -404,6 +404,7 @@ function SwipeableMyItemCard(props: {
       >
         {hasImage ? (
           <div className="rounded-xl w-[76px] h-[76px] sm:w-[84px] sm:h-[84px] shrink-0 overflow-hidden shadow-[0_10px_25px_rgba(0,0,0,0.25)] ring-1 ring-white/10 bg-black/5 dark:bg-white/5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={props.myItem.item.imageUrl}
               alt={props.bilingual.primary}
