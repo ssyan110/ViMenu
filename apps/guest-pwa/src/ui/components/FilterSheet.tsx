@@ -4,11 +4,12 @@ import * as React from "react";
 
 import {
   type MenuAllergenCode,
+  type MenuAllergenFilterOption,
+  type MenuDietaryFilterOption,
   type MenuDietaryTagCode,
 } from "@/domain/menu/models";
 import { cn } from "@/shared/cn";
 import { BottomSheet } from "@/ui/components/BottomSheet";
-import { useGuestFilters } from "@/ui/hooks/useGuestFilters";
 import {
   IconBlock,
   IconCheckCircle,
@@ -78,8 +79,9 @@ export function FilterSheet(props: {
   value: MenuFilters;
   onChange: (next: MenuFilters) => void;
   onApply: () => void;
+  dietaryOptions?: MenuDietaryFilterOption[];
+  allergenOptions?: MenuAllergenFilterOption[];
 }) {
-  const guestFilters = useGuestFilters({ enabled: props.open });
   const [draft, setDraft] = React.useState<MenuFilters>(props.value);
 
   // When opening the sheet, start from the currently applied filters.
@@ -112,29 +114,8 @@ export function FilterSheet(props: {
     });
   }, []);
 
-  const dietaryOptions = React.useMemo(() => {
-    const list = guestFilters.data?.dietary_tags ?? [];
-    const mapped = list
-      .flatMap((t) => {
-        const code = normalizeBackendCode(t.code);
-        if (!code) return [];
-        return [{ code, labelVi: t.display_vi }];
-      })
-      .sort((a, b) => a.labelVi.localeCompare(b.labelVi, "vi"));
-    return mapped;
-  }, [guestFilters.data]);
-
-  const allergenOptions = React.useMemo(() => {
-    const list = guestFilters.data?.allergens ?? [];
-    const mapped = list
-      .flatMap((a) => {
-        const code = normalizeBackendCode(a.code);
-        if (!code) return [];
-        return [{ code, labelVi: a.display_vi, icon: a.icon }];
-      })
-      .sort((a, b) => a.labelVi.localeCompare(b.labelVi, "vi"));
-    return mapped;
-  }, [guestFilters.data]);
+  const dietaryOptions = props.dietaryOptions ?? [];
+  const allergenOptions = props.allergenOptions ?? [];
 
   return (
     <BottomSheet
@@ -170,38 +151,36 @@ export function FilterSheet(props: {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {guestFilters.status === "loading" && !guestFilters.data ? (
-              <>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    // eslint-disable-next-line react/no-array-index-key
-                    key={i}
-                    className="h-10 w-28 rounded-full bg-white/5 border border-white/10 animate-pulse"
-                    aria-hidden="true"
-                  />
-                ))}
-              </>
-            ) : (
-              dietaryOptions.map((t) => {
-                const active = draft.dietary.includes(t.code);
-                return (
-                  <button
-                    key={t.code}
-                    type="button"
-                    onClick={() => toggleDietary(t.code)}
-                    className={cn(
-                      "flex items-center gap-2 h-10 px-4 rounded-full text-sm transition-colors duration-200",
-                      active
-                        ? "bg-primary text-background-dark font-bold shadow-[0_4px_12px_rgba(19,182,236,0.3)]"
-                        : "bg-white/5 border border-white/10 text-white/80 font-medium hover:bg-white/10",
-                    )}
-                  >
-                    {active ? <IconVerified className="h-5 w-5" /> : null}
-                    <span className="truncate">{t.labelVi}</span>
-                  </button>
-                );
-              })
-            )}
+            {dietaryOptions.map((t) => {
+              const active = draft.dietary.includes(t.code);
+              const showSecondary = t.labelVi && t.labelVi !== t.label;
+
+              return (
+                <button
+                  key={t.code}
+                  type="button"
+                  onClick={() => toggleDietary(t.code)}
+                  className={cn(
+                    "flex items-center gap-2 min-h-10 px-4 py-2 rounded-full text-sm transition-colors duration-200",
+                    active
+                      ? "bg-primary text-background-dark font-bold shadow-[0_4px_12px_rgba(19,182,236,0.3)]"
+                      : "bg-white/5 border border-white/10 text-white/80 font-medium hover:bg-white/10",
+                  )}
+                >
+                  {active ? (
+                    <IconVerified className="h-5 w-5 shrink-0" />
+                  ) : null}
+                  <span className="min-w-0 flex flex-col leading-tight">
+                    <span className="truncate">{t.label}</span>
+                    {showSecondary ? (
+                      <span className="truncate text-[10px] opacity-70 font-semibold">
+                        {t.labelVi}
+                      </span>
+                    ) : null}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           <div className="mt-3 flex items-center gap-2 px-1">
@@ -224,101 +203,84 @@ export function FilterSheet(props: {
           </p>
 
           <div className="grid grid-cols-2 gap-3">
-            {guestFilters.status === "loading" && !guestFilters.data ? (
-              <>
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div
-                    // eslint-disable-next-line react/no-array-index-key
-                    key={i}
-                    className="h-[74px] rounded-2xl bg-white/5 border border-white/10 animate-pulse"
-                    aria-hidden="true"
-                  />
-                ))}
-              </>
-            ) : (
-              allergenOptions.map((a) => {
-                const active = draft.excludeAllergens.includes(a.code);
-                const normalizedCode = normalizeBackendCode(a.code) ?? a.code;
-                const tone = colorFromCode(normalizedCode);
-                const backendIcon =
-                  "icon" in a && typeof a.icon === "string"
-                    ? a.icon.trim()
-                    : "";
-                const canUseBackendIcon = backendIcon.length > 0;
+            {allergenOptions.map((a) => {
+              const active = draft.excludeAllergens.includes(a.code);
+              const normalizedCode = normalizeBackendCode(a.code) ?? a.code;
+              const tone = colorFromCode(normalizedCode);
+              const backendIcon =
+                typeof a.icon === "string" ? a.icon.trim() : "";
+              const canUseBackendIcon = backendIcon.length > 0;
+              const showSecondary = a.labelVi && a.labelVi !== a.label;
 
-                return (
-                  <button
-                    key={a.code}
-                    type="button"
-                    onClick={() => toggleAllergen(a.code)}
+              return (
+                <button
+                  key={a.code}
+                  type="button"
+                  onClick={() => toggleAllergen(a.code)}
+                  className={cn(
+                    "flex items-center gap-3 p-3 rounded-2xl border transition-colors duration-200 group",
+                    active
+                      ? "bg-red-500/20 border-red-500/50 ring-1 ring-red-500/20"
+                      : "bg-white/5 border-white/10 hover:bg-red-500/10 hover:border-red-500/30",
+                  )}
+                >
+                  <div
                     className={cn(
-                      "flex items-center gap-3 p-3 rounded-2xl border transition-colors duration-200 group",
+                      "size-10 rounded-xl flex items-center justify-center",
                       active
-                        ? "bg-red-500/20 border-red-500/50 ring-1 ring-red-500/20"
-                        : "bg-white/5 border-white/10 hover:bg-red-500/10 hover:border-red-500/30",
+                        ? "bg-red-500/30"
+                        : "bg-white/5 group-hover:bg-red-500/30",
+                      "border",
                     )}
+                    style={{
+                      backgroundColor: tone.bg,
+                      borderColor: tone.border,
+                    }}
+                    aria-hidden="true"
                   >
-                    <div
-                      className={cn(
-                        "size-10 rounded-xl flex items-center justify-center",
-                        active
-                          ? "bg-red-500/30"
-                          : "bg-white/5 group-hover:bg-red-500/30",
-                        "border",
-                      )}
-                      style={{
-                        backgroundColor: tone.bg,
-                        borderColor: tone.border,
-                      }}
-                      aria-hidden="true"
-                    >
-                      {canUseBackendIcon ? (
-                        isInlineSvg(backendIcon) ? (
-                          // eslint-disable-next-line react/no-danger
-                          <span
-                            className="h-5 w-5 [&>svg]:h-5 [&>svg]:w-5 text-white/90"
-                            dangerouslySetInnerHTML={{ __html: backendIcon }}
-                          />
-                        ) : (
-                          <span
-                            className="text-[16px] leading-none"
-                            aria-hidden="true"
-                          >
-                            {backendIcon}
-                          </span>
-                        )
+                    {canUseBackendIcon ? (
+                      isInlineSvg(backendIcon) ? (
+                        // eslint-disable-next-line react/no-danger
+                        <span
+                          className="h-5 w-5 [&>svg]:h-5 [&>svg]:w-5 text-white/90"
+                          dangerouslySetInnerHTML={{ __html: backendIcon }}
+                        />
                       ) : (
-                        <span className="text-[11px] font-extrabold tracking-wider text-white/90">
-                          {shortLabelFromCode(normalizedCode)}
+                        <span
+                          className="text-[16px] leading-none"
+                          aria-hidden="true"
+                        >
+                          {backendIcon}
                         </span>
-                      )}
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-bold text-white truncate">
+                      )
+                    ) : (
+                      <span className="text-[11px] font-extrabold tracking-wider text-white/90">
+                        {shortLabelFromCode(normalizedCode)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="text-left min-w-0">
+                    <p className="text-sm font-bold text-white truncate">
+                      {a.label}
+                    </p>
+                    {showSecondary ? (
+                      <p className="text-[10px] text-white/50 font-semibold truncate">
                         {a.labelVi}
                       </p>
-                      <p className="text-[10px] text-white/40 uppercase tracking-tighter">
-                        {titleFromCode(normalizedCode)}
-                      </p>
-                    </div>
-
-                    {active ? (
-                      <IconBlock className="ml-auto h-5 w-5 text-red-400" />
                     ) : null}
-                  </button>
-                );
-              })
-            )}
-          </div>
+                    <p className="text-[10px] text-white/40 uppercase tracking-tighter truncate">
+                      {titleFromCode(normalizedCode)}
+                    </p>
+                  </div>
 
-          {guestFilters.status === "error" ? (
-            <div className="mt-3 flex items-center gap-2 px-1">
-              <IconInfo className="h-4 w-4 text-white/40" />
-              <p className="text-[10px] text-white/40 italic">
-                Couldn’t load the latest filter list. Showing defaults.
-              </p>
-            </div>
-          ) : null}
+                  {active ? (
+                    <IconBlock className="ml-auto h-5 w-5 text-red-400" />
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
         </section>
       </div>
 

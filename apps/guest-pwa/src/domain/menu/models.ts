@@ -31,15 +31,36 @@ export type MenuItem = {
   badges?: MenuItemBadge[];
   allergens?: Array<{
     code: MenuAllergenCode;
+    // Resolved label for current language (fallbacks to Vietnamese).
+    display: string;
+    // Always keep Vietnamese for bilingual fallback.
     displayVi: string;
     icon?: string;
   }>;
   dietaryTags?: MenuDietaryTagCode[];
 };
 
+export type MenuAllergenFilterOption = {
+  code: MenuAllergenCode;
+  // Resolved label for current language (fallbacks to Vietnamese).
+  label: string;
+  // Always keep Vietnamese for bilingual fallback.
+  labelVi: string;
+  icon?: string;
+};
+
+export type MenuDietaryFilterOption = {
+  code: MenuDietaryTagCode;
+  // Resolved label for current language (fallbacks to Vietnamese).
+  label: string;
+  // Always keep Vietnamese for bilingual fallback.
+  labelVi: string;
+};
+
 export type GuestMenuCategory = {
   id: string;
   nameVi: string;
+  nameByLang?: Record<string, string | undefined>;
   sortOrder: number;
   items: MenuItem[];
 };
@@ -48,4 +69,6 @@ export type GuestMenu = {
   lang: string;
   currency: string;
   categories: GuestMenuCategory[];
+  availableAllergens?: MenuAllergenFilterOption[];
+  availableDietaryTags?: MenuDietaryFilterOption[];
 };

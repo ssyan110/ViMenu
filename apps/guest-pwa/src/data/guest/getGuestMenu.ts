@@ -6,6 +6,12 @@ export type GuestMenuRpcResponse = {
     id: string;
     name_vi: string;
     sort_order: number;
+    translation?: {
+      name: string | null;
+      approved: boolean;
+      lang_code: string;
+    } | null;
+    translations?: Record<string, string> | null;
     items: Array<{
       id: string;
       sku: string | null;
@@ -20,11 +26,18 @@ export type GuestMenuRpcResponse = {
         icon: string | null;
         confirmed: boolean;
         display_vi: string;
+        translations?: Record<string, string> | null;
+      }>;
+      dietary_tags?: Array<{
+        code: string;
+        confirmed: boolean;
+        display_vi: string;
+        translations?: Record<string, string> | null;
       }>;
       translation: {
-        lang_code: string;
-        approved: boolean;
         name: string | null;
+        approved: boolean;
+        lang_code: string;
         description: string | null;
       };
     }>;

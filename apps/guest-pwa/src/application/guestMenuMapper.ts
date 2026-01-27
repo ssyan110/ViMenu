@@ -5,7 +5,13 @@ import {
   type LanguageCode,
   normalizeLanguageCode,
 } from "@/domain/language";
-import type { GuestMenuCategory, MenuItem } from "@/domain/menu/models";
+import type {
+  GuestMenu,
+  GuestMenuCategory,
+  MenuAllergenFilterOption,
+  MenuDietaryFilterOption,
+  MenuItem,
+} from "@/domain/menu/models";
 
 function formatPriceCompact(params: {
   price: number | null;
@@ -47,16 +53,26 @@ function normalizeBackendCode(code: string | null | undefined): string | null {
   return c.length ? c : null;
 }
 
+function resolveTranslation(params: {
+  translations?: Record<string, string> | null;
+  requestedLang: LanguageCode;
+}): string | undefined {
+  if (!params.translations) return undefined;
+  if (params.requestedLang === DEFAULT_LANGUAGE) return undefined;
+  const key = normalizeLanguageCode(params.requestedLang);
+  const raw = params.translations[key];
+  return raw && raw.trim().length ? raw.trim() : undefined;
+}
+
 export function mapGuestMenuResponse(params: {
   response: GuestMenuRpcResponse;
   requestedLang: LanguageCode;
-}): {
-  lang: LanguageCode;
-  currency: string;
-  categories: GuestMenuCategory[];
-} {
+}): GuestMenu {
   const lang = normalizeLanguageCode(params.response.lang) as LanguageCode;
   const currency = params.response.restaurant.currency;
+
+  const allergenByCode = new Map<string, MenuAllergenFilterOption>();
+  const dietaryByCode = new Map<string, MenuDietaryFilterOption>();
 
   const categories: GuestMenuCategory[] = params.response.categories
     .slice()
@@ -78,14 +94,62 @@ export function mapGuestMenuResponse(params: {
           .flatMap((a) => {
             const code = normalizeBackendCode(a.code);
             if (!code) return [];
+
+            const translated = resolveTranslation({
+              translations: a.translations ?? null,
+              requestedLang: params.requestedLang,
+            });
+
+            const displayVi = a.display_vi;
+            const display = translated ?? displayVi;
             return [
               {
                 code,
-                displayVi: a.display_vi,
+                display,
+                displayVi,
                 icon: a.icon ?? undefined,
               },
             ];
           });
+
+        for (const a of allergens) {
+          const existing = allergenByCode.get(a.code);
+          if (existing) continue;
+          allergenByCode.set(a.code, {
+            code: a.code,
+            label: a.display,
+            labelVi: a.displayVi,
+            icon: a.icon,
+          });
+        }
+
+        const dietaryTagsWithLabels = (it.dietary_tags ?? [])
+          .filter((t) => t && t.confirmed)
+          .flatMap((t) => {
+            const code = normalizeBackendCode(t.code);
+            if (!code) return [];
+
+            const translated = resolveTranslation({
+              translations: t.translations ?? null,
+              requestedLang: params.requestedLang,
+            });
+
+            const labelVi = t.display_vi;
+            const label = translated ?? labelVi;
+            return [{ code, label, labelVi }];
+          });
+
+        for (const t of dietaryTagsWithLabels) {
+          const existing = dietaryByCode.get(t.code);
+          if (existing) continue;
+          dietaryByCode.set(t.code, {
+            code: t.code,
+            label: t.label,
+            labelVi: t.labelVi,
+          });
+        }
+
+        const dietaryTags = dietaryTagsWithLabels.map((t) => t.code);
 
         return {
           id: it.id,
@@ -105,6 +169,7 @@ export function mapGuestMenuResponse(params: {
               ? { [params.requestedLang]: translatedDescription }
               : undefined,
           allergens,
+          dietaryTags: dietaryTags.length ? dietaryTags : undefined,
           badges: (it.badges ?? []).map((b) => ({
             code: b.code,
             rank: b.rank ?? undefined,
@@ -112,13 +177,39 @@ export function mapGuestMenuResponse(params: {
         };
       });
 
+      const categoryTranslated =
+        c.translation?.approved && c.translation?.name
+          ? c.translation.name
+          : resolveTranslation({
+              translations: c.translations ?? null,
+              requestedLang: params.requestedLang,
+            });
+
       return {
         id: c.id,
         nameVi: c.name_vi,
+        nameByLang:
+          categoryTranslated && params.requestedLang !== DEFAULT_LANGUAGE
+            ? { [params.requestedLang]: categoryTranslated }
+            : undefined,
         sortOrder: c.sort_order,
         items,
       };
     });
 
-  return { lang, currency, categories };
+  const availableAllergens = Array.from(allergenByCode.values()).sort((a, b) =>
+    a.labelVi.localeCompare(b.labelVi, "vi"),
+  );
+
+  const availableDietaryTags = Array.from(dietaryByCode.values()).sort((a, b) =>
+    a.labelVi.localeCompare(b.labelVi, "vi"),
+  );
+
+  return {
+    lang,
+    currency,
+    categories,
+    availableAllergens,
+    availableDietaryTags,
+  };
 }

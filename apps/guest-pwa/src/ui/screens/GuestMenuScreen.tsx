@@ -99,7 +99,7 @@ function MenuItemCard(props: {
                   key={`${props.item.id}-alg-${a.code}`}
                   code={a.code}
                   icon={a.icon}
-                  title={a.displayVi}
+                  title={a.display}
                 />
               ))}
             </div>
@@ -149,7 +149,7 @@ function MenuItemCard(props: {
               key={`${props.item.id}-alg-${a.code}`}
               code={a.code}
               icon={a.icon}
-              title={a.displayVi}
+              title={a.display}
             />
           ))}
         </div>
@@ -407,6 +407,11 @@ export function GuestMenuScreen(props: {
         <div className="w-full overflow-x-auto no-scrollbar pb-3 pt-1 px-5 flex gap-3 snap-x">
           {categories.map((c) => {
             const isActive = c.id === activeCategory;
+            const catText = getBilingualName({
+              nameVi: c.nameVi,
+              nameByLang: c.nameByLang,
+              selectedLanguage: selected,
+            }).primary;
 
             return (
               <button
@@ -432,7 +437,7 @@ export function GuestMenuScreen(props: {
                     : "bg-white/5 hover:bg-white/10 text-white/80 font-medium border-white/10 backdrop-blur-sm",
                 )}
               >
-                {c.nameVi}
+                {catText}
               </button>
             );
           })}
@@ -442,7 +447,15 @@ export function GuestMenuScreen(props: {
       <main className="px-4 pt-6 flex flex-col gap-5">
         <div className="flex items-baseline justify-between px-1">
           <h2 className="text-xl font-bold text-white">
-            {categories.find((c) => c.id === activeCategory)?.nameVi ?? "Menu"}
+            {(() => {
+              const c = categories.find((x) => x.id === activeCategory);
+              if (!c) return "Menu";
+              return getBilingualName({
+                nameVi: c.nameVi,
+                nameByLang: c.nameByLang,
+                selectedLanguage: selected,
+              }).primary;
+            })()}
           </h2>
           <span className="text-xs font-medium text-white/40 uppercase tracking-wider">
             {visibleItems.length} Items
@@ -513,6 +526,8 @@ export function GuestMenuScreen(props: {
         onClose={() => setFilterOpen(false)}
         value={filters.value}
         onChange={filters.setValue}
+        dietaryOptions={props.menu.availableDietaryTags}
+        allergenOptions={props.menu.availableAllergens}
         onApply={() => {
           setFilterOpen(false);
         }}

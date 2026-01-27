@@ -71,7 +71,13 @@ export default async function RestaurantPage({
       <GuestMenuScreen
         restaurant={{ slug: params.slug, name: params.slug }}
         availableLanguages={[DEFAULT_LANGUAGE]}
-        menu={{ lang: DEFAULT_LANGUAGE, currency: "VND", categories: [] }}
+        menu={{
+          lang: DEFAULT_LANGUAGE,
+          currency: "VND",
+          categories: [],
+          availableAllergens: [],
+          availableDietaryTags: [],
+        }}
       />
     );
   }
