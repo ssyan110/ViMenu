@@ -746,7 +746,9 @@ export function GuestMenuScreen(props: {
       <div className="fixed bottom-6 right-5 z-50">
         <button
           type="button"
-          onClick={() => router.push(`/r/${props.restaurant.slug}/my-items`)}
+          onClick={() =>
+            router.push(`/r/${props.restaurant.slug}/my-items?lang=${selected}`)
+          }
           className="group flex items-center gap-3 bg-primary hover:bg-sky-400 text-background-dark pl-4 pr-5 h-14 rounded-full shadow-[0_8px_30px_rgba(19,182,236,0.4)] transition-all active:scale-95 cursor-pointer"
           aria-label="Open My Items"
         >

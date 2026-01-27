@@ -36,6 +36,23 @@ function formatPriceCompact(params: {
   }
 }
 
+export function formatPrice(price: number, currency: string): string {
+  if (currency === "VND") {
+    return new Intl.NumberFormat("vi-VN").format(price) + " ₫";
+  }
+
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(price);
+  } catch {
+    return `${price} ${currency}`;
+  }
+}
+
 function resolvePublicImageUrl(imagePath: string | null): string | undefined {
   if (!imagePath) return undefined;
   if (/^https?:\/\//i.test(imagePath)) return imagePath;

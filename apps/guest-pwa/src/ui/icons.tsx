@@ -8,6 +8,7 @@ import {
   Cloud,
   CloudRain,
   CloudSun,
+  Eye,
   Filter,
   Flame,
   Heart,
@@ -45,6 +46,8 @@ export const IconHeart = Heart;
 export const IconShare = Share2;
 export const IconStar = Star;
 export const IconFlame = Flame;
+export const IconEye = Eye;
+export const IconX = X;
 
 export const IconThermometer = Thermometer;
 export const IconSun = Sun;

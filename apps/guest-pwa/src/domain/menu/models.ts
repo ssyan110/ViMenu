@@ -21,6 +21,7 @@ export type MenuItem = {
   id: string;
   categoryId: string;
   sku?: string;
+  price?: number;
   priceText?: string;
   priceNote?: string;
   imageUrl?: string;
