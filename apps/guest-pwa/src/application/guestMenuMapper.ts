@@ -5,11 +5,7 @@ import {
   type LanguageCode,
   normalizeLanguageCode,
 } from "@/domain/language";
-import type {
-  GuestMenuCategory,
-  MenuAllergenCode,
-  MenuItem,
-} from "@/domain/menu/models";
+import type { GuestMenuCategory, MenuItem } from "@/domain/menu/models";
 
 function formatPriceCompact(params: {
   price: number | null;
@@ -46,16 +42,9 @@ function resolvePublicImageUrl(imagePath: string | null): string | undefined {
   )}`;
 }
 
-function coerceAllergenCode(code: string): MenuAllergenCode | undefined {
-  const c = code.trim().toLowerCase();
-  if (c === "peanut" || c === "peanuts") return "peanut";
-  if (c === "shrimp" || c === "shellfish") return "shrimp";
-  if (c === "egg" || c === "eggs") return "egg";
-  if (c === "gluten") return "gluten";
-  if (c === "soy") return "soy";
-  if (c === "fish") return "fish";
-  if (c === "milk" || c === "dairy") return "milk";
-  return undefined;
+function normalizeBackendCode(code: string | null | undefined): string | null {
+  const c = (code ?? "").trim().toLowerCase();
+  return c.length ? c : null;
 }
 
 export function mapGuestMenuResponse(params: {
@@ -87,7 +76,7 @@ export function mapGuestMenuResponse(params: {
         const allergens = (it.allergens ?? [])
           .filter((a) => a && a.confirmed)
           .flatMap((a) => {
-            const code = coerceAllergenCode(a.code);
+            const code = normalizeBackendCode(a.code);
             if (!code) return [];
             return [
               {

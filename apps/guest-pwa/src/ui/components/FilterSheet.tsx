@@ -2,9 +2,9 @@
 
 import * as React from "react";
 
-import type {
-  MenuAllergenCode,
-  MenuDietaryTagCode,
+import {
+  type MenuAllergenCode,
+  type MenuDietaryTagCode,
 } from "@/domain/menu/models";
 import { cn } from "@/shared/cn";
 import { BottomSheet } from "@/ui/components/BottomSheet";
@@ -17,68 +17,41 @@ import {
   IconVerified,
 } from "@/ui/icons";
 
-const DIETARY_FALLBACK: Array<{ code: MenuDietaryTagCode; labelVi: string }> = [
-  { code: "halal", labelVi: "Halal" },
-  { code: "kosher", labelVi: "Kosher" },
-  { code: "vegetarian", labelVi: "Ăn chay" },
-  { code: "vegan", labelVi: "Thuần chay" },
-  { code: "gluten_free", labelVi: "Không Gluten" },
-];
-
-const ALLERGEN_FALLBACK: Array<{
-  code: MenuAllergenCode;
-  labelVi: string;
-}> = [
-  { code: "egg", labelVi: "Trứng" },
-  { code: "fish", labelVi: "Cá" },
-  { code: "gluten", labelVi: "Gluten" },
-  { code: "milk", labelVi: "Sữa" },
-  { code: "peanut", labelVi: "Đậu phộng" },
-  { code: "shrimp", labelVi: "Tôm" },
-  { code: "soy", labelVi: "Đậu nành" },
-];
-
-const ALLERGEN_SHORT: Record<MenuAllergenCode, string> = {
-  egg: "EG",
-  fish: "FS",
-  gluten: "GF",
-  milk: "MK",
-  peanut: "PN",
-  shrimp: "SH",
-  soy: "SY",
-};
-
-const ALLERGEN_TONE: Record<MenuAllergenCode, { bg: string; border: string }> =
-  {
-    peanut: { bg: "bg-orange-500/20", border: "border-orange-500/40" },
-    shrimp: { bg: "bg-red-500/20", border: "border-red-500/40" },
-    milk: { bg: "bg-blue-500/20", border: "border-blue-500/40" },
-    egg: { bg: "bg-yellow-500/20", border: "border-yellow-500/40" },
-    soy: { bg: "bg-green-500/20", border: "border-green-500/40" },
-    gluten: { bg: "bg-cyan-500/20", border: "border-cyan-500/40" },
-    fish: { bg: "bg-sky-500/20", border: "border-sky-500/40" },
-  };
-
-function isDietaryCode(v: string): v is MenuDietaryTagCode {
-  return (
-    v === "halal" ||
-    v === "kosher" ||
-    v === "vegetarian" ||
-    v === "vegan" ||
-    v === "gluten_free"
-  );
+function normalizeBackendCode(code: string | null | undefined) {
+  const c = (code ?? "").trim().toLowerCase();
+  return c.length ? c : null;
 }
 
-function isAllergenCode(v: string): v is MenuAllergenCode {
-  return (
-    v === "peanut" ||
-    v === "shrimp" ||
-    v === "egg" ||
-    v === "gluten" ||
-    v === "soy" ||
-    v === "fish" ||
-    v === "milk"
-  );
+function hashString(text: string): number {
+  // FNV-1a 32-bit
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+function colorFromCode(code: string): {
+  bg: string;
+  border: string;
+} {
+  const c = code.trim().toLowerCase();
+  const hue = hashString(c || "allergen") % 360;
+  return {
+    bg: `hsla(${hue}, 85%, 55%, 0.18)`,
+    border: `hsla(${hue}, 85%, 60%, 0.35)`,
+  };
+}
+
+function shortLabelFromCode(code: string): string {
+  const compact = code
+    .trim()
+    .replace(/[^a-z0-9]/gi, "")
+    .toUpperCase();
+  if (compact.length >= 2) return compact.slice(0, 2);
+  const raw = code.trim().toUpperCase();
+  return raw.length >= 2 ? raw.slice(0, 2) : raw || "AL";
 }
 
 function titleFromCode(code: string) {
@@ -142,27 +115,25 @@ export function FilterSheet(props: {
   const dietaryOptions = React.useMemo(() => {
     const list = guestFilters.data?.dietary_tags ?? [];
     const mapped = list
-      .filter((t): t is { code: MenuDietaryTagCode; display_vi: string } =>
-        isDietaryCode(t.code),
-      )
-      .map((t) => ({ code: t.code, labelVi: t.display_vi }));
-    return mapped.length ? mapped : DIETARY_FALLBACK;
+      .flatMap((t) => {
+        const code = normalizeBackendCode(t.code);
+        if (!code) return [];
+        return [{ code, labelVi: t.display_vi }];
+      })
+      .sort((a, b) => a.labelVi.localeCompare(b.labelVi, "vi"));
+    return mapped;
   }, [guestFilters.data]);
 
   const allergenOptions = React.useMemo(() => {
     const list = guestFilters.data?.allergens ?? [];
     const mapped = list
-      .filter(
-        (
-          a,
-        ): a is {
-          code: MenuAllergenCode;
-          display_vi: string;
-          icon: string | null;
-        } => isAllergenCode(a.code),
-      )
-      .map((a) => ({ code: a.code, labelVi: a.display_vi, icon: a.icon }));
-    return mapped.length ? mapped : ALLERGEN_FALLBACK;
+      .flatMap((a) => {
+        const code = normalizeBackendCode(a.code);
+        if (!code) return [];
+        return [{ code, labelVi: a.display_vi, icon: a.icon }];
+      })
+      .sort((a, b) => a.labelVi.localeCompare(b.labelVi, "vi"));
+    return mapped;
   }, [guestFilters.data]);
 
   return (
@@ -267,7 +238,8 @@ export function FilterSheet(props: {
             ) : (
               allergenOptions.map((a) => {
                 const active = draft.excludeAllergens.includes(a.code);
-                const tone = ALLERGEN_TONE[a.code];
+                const normalizedCode = normalizeBackendCode(a.code) ?? a.code;
+                const tone = colorFromCode(normalizedCode);
                 const backendIcon =
                   "icon" in a && typeof a.icon === "string"
                     ? a.icon.trim()
@@ -292,10 +264,12 @@ export function FilterSheet(props: {
                         active
                           ? "bg-red-500/30"
                           : "bg-white/5 group-hover:bg-red-500/30",
-                        tone?.bg,
-                        tone?.border,
                         "border",
                       )}
+                      style={{
+                        backgroundColor: tone.bg,
+                        borderColor: tone.border,
+                      }}
                       aria-hidden="true"
                     >
                       {canUseBackendIcon ? (
@@ -315,7 +289,7 @@ export function FilterSheet(props: {
                         )
                       ) : (
                         <span className="text-[11px] font-extrabold tracking-wider text-white/90">
-                          {ALLERGEN_SHORT[a.code]}
+                          {shortLabelFromCode(normalizedCode)}
                         </span>
                       )}
                     </div>
@@ -324,7 +298,7 @@ export function FilterSheet(props: {
                         {a.labelVi}
                       </p>
                       <p className="text-[10px] text-white/40 uppercase tracking-tighter">
-                        {titleFromCode(a.code)}
+                        {titleFromCode(normalizedCode)}
                       </p>
                     </div>
 

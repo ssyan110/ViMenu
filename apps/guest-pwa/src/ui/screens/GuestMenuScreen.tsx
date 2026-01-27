@@ -9,12 +9,7 @@ import {
   type LanguageCode,
   normalizeLanguageCode,
 } from "@/domain/language";
-import type {
-  GuestMenu,
-  MenuAllergenCode,
-  MenuDietaryTagCode,
-  MenuItem,
-} from "@/domain/menu/models";
+import type { GuestMenu, MenuItem } from "@/domain/menu/models";
 import { cn } from "@/shared/cn";
 import { AllergenBadge } from "@/ui/components/AllergenBadge";
 import { FilterSheet, type MenuFilters } from "@/ui/components/FilterSheet";
@@ -174,19 +169,24 @@ function MenuItemCard(props: {
 function useMenuFilters() {
   const sp = useSearchParams();
 
-  const initial = React.useMemo<MenuFilters>(() => {
-    const dietary = (sp.get("diet") ?? "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean) as MenuDietaryTagCode[];
+  const normalizeBackendCode = React.useCallback((code: string) => {
+    const c = code.trim().toLowerCase();
+    return c.length ? c : null;
+  }, []);
 
-    const excludeAllergens = (sp.get("excl") ?? "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean) as MenuAllergenCode[];
+  const initial = React.useMemo<MenuFilters>(() => {
+    const dietary = (sp.get("diet") ?? "").split(",").flatMap((s) => {
+      const v = normalizeBackendCode(s);
+      return v ? [v] : [];
+    });
+
+    const excludeAllergens = (sp.get("excl") ?? "").split(",").flatMap((s) => {
+      const v = normalizeBackendCode(s);
+      return v ? [v] : [];
+    });
 
     return { dietary, excludeAllergens };
-  }, [sp]);
+  }, [normalizeBackendCode, sp]);
 
   const [value, setValueState] = React.useState<MenuFilters>(initial);
 
@@ -220,14 +220,17 @@ function useMenuFilters() {
 
 function matchesFilters(item: MenuItem, filters: MenuFilters) {
   const itemAllergens = new Set(
-    (item.allergens ?? []).map((a) => a.code as MenuAllergenCode),
+    (item.allergens ?? []).map((a) => String(a.code).trim().toLowerCase()),
   );
 
   // Dietary tags are plan-gated + admin-confirmed; if the API doesn't provide them yet,
   // we keep the UI but don't hide everything.
   if (filters.dietary.length && (item.dietaryTags?.length ?? 0) > 0) {
-    const itemDietary = new Set(item.dietaryTags);
-    for (const required of filters.dietary) {
+    const itemDietary = new Set(
+      (item.dietaryTags ?? []).map((t) => String(t).trim().toLowerCase()),
+    );
+    for (const requiredRaw of filters.dietary) {
+      const required = String(requiredRaw).trim().toLowerCase();
       if (!itemDietary.has(required)) return false;
     }
   }

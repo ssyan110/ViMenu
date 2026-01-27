@@ -4,25 +4,18 @@ export type MenuCategory = {
   itemCount?: number;
 };
 
-export type MenuDietaryTagCode =
-  | "halal"
-  | "kosher"
-  | "vegetarian"
-  | "vegan"
-  | "gluten_free";
+// Dietary tag codes come from backend master data.
+export type MenuDietaryTagCode = string;
 
-export type MenuAllergenCode =
-  | "peanut"
-  | "shrimp"
-  | "egg"
-  | "gluten"
-  | "soy"
-  | "fish"
-  | "milk";
+// NOTE: Allergen codes come from backend master data. Do not whitelist/filter
+// in the frontend, otherwise newly added codes will disappear from UI.
+export type MenuAllergenCode = string;
 
-export type MenuItemBadge =
-  | { type: "dietary"; code: MenuDietaryTagCode }
-  | { type: "label"; code: "popular" | "best_seller" };
+// Badges come from backend; keep them generic to avoid dropping new codes.
+export type MenuItemBadge = {
+  code: string;
+  rank?: number;
+};
 
 export type MenuItem = {
   id: string;
@@ -35,7 +28,7 @@ export type MenuItem = {
   nameByLang?: Record<string, string | undefined>;
   descriptionVi?: string;
   descriptionByLang?: Record<string, string | undefined>;
-  badges?: Array<{ code: string; rank?: number }>;
+  badges?: MenuItemBadge[];
   allergens?: Array<{
     code: MenuAllergenCode;
     displayVi: string;

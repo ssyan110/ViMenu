@@ -1,63 +1,50 @@
 "use client";
 
-import type { MenuAllergenCode } from "@/domain/menu/models";
 import { cn } from "@/shared/cn";
 import { useState } from "react";
 
-const STYLE: Record<
-  MenuAllergenCode,
-  { bg: string; border: string; text: string; label: string }
-> = {
-  peanut: {
-    bg: "bg-orange-500/20",
-    border: "border-orange-500/50",
-    text: "text-orange-500",
-    label: "PN",
-  },
-  shrimp: {
-    bg: "bg-red-500/20",
-    border: "border-red-500/50",
-    text: "text-red-400",
-    label: "SH",
-  },
-  milk: {
-    bg: "bg-blue-500/20",
-    border: "border-blue-500/50",
-    text: "text-blue-300",
-    label: "MK",
-  },
-  egg: {
-    bg: "bg-yellow-500/20",
-    border: "border-yellow-500/50",
-    text: "text-yellow-400",
-    label: "EG",
-  },
-  soy: {
-    bg: "bg-green-500/20",
-    border: "border-green-500/50",
-    text: "text-green-400",
-    label: "SY",
-  },
-  gluten: {
-    bg: "bg-blue-500/20",
-    border: "border-blue-500/50",
-    text: "text-blue-400",
-    label: "GF",
-  },
-  fish: {
-    bg: "bg-cyan-500/20",
-    border: "border-cyan-500/50",
-    text: "text-cyan-300",
-    label: "FS",
-  },
-};
+function hashString(text: string): number {
+  // FNV-1a 32-bit
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  // Ensure unsigned
+  return hash >>> 0;
+}
+
+function colorFromCode(code: string): {
+  bg: string;
+  border: string;
+  text: string;
+} {
+  const c = code.trim().toLowerCase();
+  const hue = hashString(c || "allergen") % 360;
+  return {
+    bg: `hsla(${hue}, 85%, 55%, 0.18)`,
+    border: `hsla(${hue}, 85%, 60%, 0.35)`,
+    text: `hsl(${hue}, 90%, 78%)`,
+  };
+}
+
+function shortLabelFromCode(code: string): string {
+  const compact = code
+    .trim()
+    .replace(/[^a-z0-9]/gi, "")
+    .toUpperCase();
+  if (compact.length >= 2) return compact.slice(0, 2);
+  const raw = code.trim().toUpperCase();
+  return raw.length >= 2 ? raw.slice(0, 2) : raw || "AL";
+}
 
 export function AllergenBadge(props: {
-  code: MenuAllergenCode;
+  code: string;
   title?: string;
   icon?: string;
 }) {
-  const s = STYLE[props.code];
+  const normalized = props.code.trim().toLowerCase();
+  const colors = colorFromCode(normalized);
   const [open, setOpen] = useState(false);
 
   const tooltipText = props.title?.trim() ? props.title.trim() : undefined;
@@ -74,10 +61,13 @@ export function AllergenBadge(props: {
         className={cn(
           "size-7 rounded-full border flex items-center justify-center select-none",
           "transition-colors cursor-pointer",
-          s.bg,
-          s.border,
-          s.text,
+          "bg-transparent",
         )}
+        style={{
+          backgroundColor: colors.bg,
+          borderColor: colors.border,
+          color: colors.text,
+        }}
         title={tooltipText}
         aria-label={tooltipText}
         aria-expanded={open}
@@ -90,7 +80,7 @@ export function AllergenBadge(props: {
           )}
           aria-hidden="true"
         >
-          {props.icon ?? s.label}
+          {props.icon ?? shortLabelFromCode(normalized)}
         </span>
       </button>
 
