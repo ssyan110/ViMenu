@@ -240,7 +240,7 @@ export function FilterSheet(props: {
                   >
                     {canUseBackendIcon ? (
                       isInlineSvg(backendIcon) ? (
-                        // eslint-disable-next-line react/no-danger
+                         
                         <span
                           className="h-5 w-5 [&>svg]:h-5 [&>svg]:w-5 text-white/90"
                           dangerouslySetInnerHTML={{ __html: backendIcon }}

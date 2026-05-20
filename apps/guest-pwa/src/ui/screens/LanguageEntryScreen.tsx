@@ -96,7 +96,7 @@ export function LanguageEntryScreen(props: Props) {
   React.useEffect(() => {
     // Client-side debug hook: helps confirm the screen received API-driven props.
     // (API call itself runs server-side; logs for that appear in the terminal.)
-    // eslint-disable-next-line no-console
+     
     console.info("[vimenu][entry-ui] props", {
       restaurantSlug: props.restaurant.slug,
       availableLanguages,
